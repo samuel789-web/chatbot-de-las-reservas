@@ -1,0 +1,84 @@
+<!-- SOLO LA PARTE QUE CAMBIA DEL SCRIPT EN TU ARCHIVO -->
+<script>
+  const messages = document.getElementById('messages');
+  const userInput = document.getElementById('userInput');
+  const reservaItems = document.getElementById('reservaItems');
+  const panelAdmin = document.getElementById('panelAdmin');
+
+  let step = 0;
+  let reserva = { nombre: "", fecha: "", hora: "", personas: "" };
+
+  const botMessages = [
+    "¡Hola! Bienvenido a Barbería César ✂. ¿Cuál es tu nombre?",
+    "Genial, ¿para qué fecha te gustaría reservar? (Ej: 25/05)",
+    "¿Y a qué hora?",
+    "¿Cuántas personas asistirán?",
+    "¡Reserva confirmada! Aquí tienes los detalles:",
+    "¡Muchas gracias por reservar con nosotros! ✂ Tu cita está lista."
+  ];
+
+  function addMessage(text, sender) {
+    const div = document.createElement("div");
+    div.classList.add("message", sender);
+    div.innerText = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+  }
+
+  function agregarReservaALista() {
+    const li = document.createElement("li");
+    li.innerText = `${reserva.fecha} - ${reserva.hora} - ${reserva.nombre} (${reserva.personas} personas)`;
+    reservaItems.appendChild(li);
+
+    // Enviar al Google Sheets usando Apps Script
+    fetch("https://script.google.com/macros/s/AKfycbz5fvqbYOiLa-tTDm0fMMIajPrt9Aj8B0RR7qW4kVOqazpQGALwqgHUfydXH9hs3BrU/exec", {
+      method: "POST",
+      body: JSON.stringify(reserva),
+      headers: { "Content-Type": "application/json" }
+    })
+    .then(res => res.text())
+    .then(txt => console.log("✅ Enviado al Sheets:", txt))
+    .catch(err => console.error("❌ Error al enviar reserva:", err));
+  }
+
+  function botNextMessage() {
+    if (step < botMessages.length - 2) {
+      addMessage(botMessages[step], "bot");
+    } else if (step === botMessages.length - 2) {
+      let resumen = `Nombre: ${reserva.nombre}\nFecha: ${reserva.fecha}\nHora: ${reserva.hora}\nPersonas: ${reserva.personas}`;
+      addMessage(botMessages[step], "bot");
+      addMessage(resumen, "bot");
+      agregarReservaALista();
+    } else {
+      addMessage(botMessages[step], "bot");
+    }
+  }
+
+  userInput.addEventListener("keypress", function(e) {
+    if (e.key === "Enter" && userInput.value.trim() !== "") {
+      let input = userInput.value.trim();
+
+      // Comando secreto
+      if (input === "admin123") {
+        panelAdmin.style.display = "block";
+        addMessage("[Acceso al panel de administración habilitado]", "bot");
+        userInput.value = "";
+        return;
+      }
+
+      addMessage(input, "user");
+
+      if (step === 0) reserva.nombre = input;
+      if (step === 1) reserva.fecha = input;
+      if (step === 2) reserva.hora = input;
+      if (step === 3) reserva.personas = input;
+
+      step++;
+      userInput.value = "";
+      setTimeout(botNextMessage, 500);
+    }
+  });
+
+  // Inicia el chat
+  botNextMessage();
+</script>
